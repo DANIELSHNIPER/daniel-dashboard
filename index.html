@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>××©×××¨× ×××¦××¢×× â ×× ×××</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#0f1117;--card:#1a1d27;--border:#2a2d3a;--text:#e4e4e7;--muted:#9ca3af;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;--pink:#ec4899;--orange:#f97316}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:360px;text-align:center}
+.login-box h1{font-size:1.5rem;margin-bottom:8px}
+.login-box p{color:var(--muted);font-size:.9rem;margin-bottom:24px}
+.login-box input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:1rem;margin-bottom:12px;direction:rtl}
+.login-box input::placeholder{color:var(--muted)}
+.login-box button{width:100%;padding:12px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+.login-error{color:var(--red);font-size:.85rem;margin-top:8px;display:none}
+#dashboard{display:none}
+.top-bar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+.top-bar h1{font-size:1.1rem}.top-bar .date{color:var(--muted);font-size:.7rem}
+.logout-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:4px 10px;cursor:pointer;font-size:.7rem}
+.updated-badge{display:inline-block;font-size:.65rem;padding:4px 8px;border-radius:12px;margin-right:8px;font-weight:500}
+.updated-fresh{background:rgba(34,197,94,.15);color:var(--green);animation:pulse-green 2s infinite}
+.updated-stale{background:rgba(234,179,8,.15);color:var(--yellow)}
+.updated-old{background:rgba(239,68,68,.15);color:var(--red)}
+@keyframes pulse-green{0%{opacity:1}50%{opacity:.6}100%{opacity:1}}
+.nav-bar{position:sticky;top:48px;z-index:99;background:var(--bg);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;padding:0 8px;-webkit-overflow-scrolling:touch}
+.nav-bar::-webkit-scrollbar{display:none}
+.nav-btn{display:inline-block;padding:10px 14px;font-size:.78rem;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.nav-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+.range-bar{display:flex;justify-content:center;gap:6px;padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--border)}
+.range-btn{font-size:.68rem;padding:4px 12px;border-radius:16px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;transition:all .2s}
+.range-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.section{display:none;padding:16px;max-width:960px;margin:0 auto}
+.section.active{display:block}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;padding:20px;color:var(--muted)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;transition:all .3s;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;z-index:-1;opacity:0;transition:opacity .3s}
+.kpi.kpi-green{border-color:rgba(34,197,94,.3)}
+.kpi.kpi-green::before{background:radial-gradient(circle at center,rgba(34,197,94,.1) 0%,transparent 70%);opacity:1}
+.kpi.kpi-yellow{border-color:rgba(234,179,8,.3)}
+.kpi.kpi-yellow::before{background:radial-gradient(circle at center,rgba(234,179,8,.1) 0%,transparent 70%);opacity:1}
+.kpi.kpi-red{border-color:rgba(239,68,68,.3)}
+.kpi.kpi-red::before{background:radial-gradient(circle at center,rgba(239,68,68,.1) 0%,transparent 70%);opacity:1}
+.kpi.kpi-orange{border-color:rgba(249,115,22,.3)}
+.kpi.kpi-orange::before{background:radial-gradient(circle at center,rgba(249,115,22,.1) 0%,transparent 70%);opacity:1}
+.kpi .value{font-size:1.5rem;font-weight:700}.kpi .label{font-size:.7rem;color:var(--muted);margin-top:2px}
+.kpi .status{font-size:.6rem;margin-top:4px;padding:2px 8px;border-radius:99px;display:inline-block}
+.status-green{background:rgba(34,197,94,.15);color:var(--green)}
+.status-yellow{background:rgba(234,179,8,.15);color:var(--yellow)}
+.status-red{background:rgba(239,68,68,.15);color:var(--red)}
+.status-orange{background:rgba(249,115,22,.15);color:var(--orange)}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+.chart-card h3{font-size:.82rem;margin-bottom:8px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px}
+.chart-container{position:relative;height:220px}
+.ma-toggles{display:flex;gap:4px}
+.ma-btn{font-size:.58rem;padding:2px 7px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer}
+.ma-btn.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.reset-zoom-btn{font-size:.55rem;padding:2px 7px;border-radius:12px;border:1px solid var(--orange);background:none;color:var(--orange);cursor:pointer;margin-right:4px}
+.data-table{width:100%;border-collapse:collapse;font-size:.72rem}
+.data-table th{text-align:right;padding:5px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:500}
+.data-table td{padding:5px;border-bottom:1px solid var(--border)}
+.alert{padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:.78rem}
+.alert-warn{background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3)}
+.alert-ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.alert-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3)}
+.section-title{font-size:.95rem;font-weight:600;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.viewer-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.72rem}
+.course-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.course-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.course-name{font-size:.82rem;font-weight:600}.course-grade{font-size:1.1rem;font-weight:700}
+.grade-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px}
+.grade-fill{height:100%;border-radius:3px;transition:width .5s}
+.target-line{font-size:.62rem;color:var(--muted);margin-top:3px}
+.commitment-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.commitment-info{flex:1}
+.commitment-title{font-size:.82rem;font-weight:600;margin-bottom:4px}
+.commitment-days{font-size:.7rem;color:var(--muted);margin-bottom:4px}
+.commitment-status{display:inline-block;font-size:.62rem;padding:2px 8px;border-radius:99px;font-weight:500}
+.commitment-days-badge{font-size:.78rem;font-weight:700;padding:4px 10px;border-radius:6px;background:var(--border)}
+.insight-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.insight-card .title{font-size:.78rem;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.insight-card .body{font-size:.72rem;color:var(--muted);line-height:1.6}
+.insight-card .metric{font-weight:600;color:var(--text)}
+.sub-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px;text-align:center}
+.sub-card h3{font-size:.9rem;margin-bottom:12px}
+.sub-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+.sub-row input{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.82rem;width:200px;direction:ltr}
+.sub-row select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.82rem}
+.sub-row button{padding:8px 16px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer}
+.sub-msg{font-size:.72rem;margin-top:6px}
+.refresh-note{font-size:.6rem;color:var(--muted);text-align:center;padding:4px;opacity:.6}
+.view-filter{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.view-filter .range-btn{font-size:.65rem}
+@media(max-width:600px){
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .kpi .value{font-size:1.2rem}
+  .chart-container{height:200px}
+  .sub-row{flex-direction:column;align-items:center}
+  .sub-row input{width:100%}
+  .commitment-card{flex-direction:column;align-items:flex-start}
+  .commitment-days-badge{margin-top:8px}
+}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-box">
+    <h1>××©×××¨× ×××¦××¢××</h1>
+    <p>××× ×¡ ×©× ××©×ª××© ××¡××¡×× ××¦×¤×××</p>
+    <input type="text" id="username" placeholder="×©× ××©×ª××©" autocomplete="username">
+    <input type="password" id="pin" placeholder="×¡××¡×× (4 ×ª××××)" maxlength="4" autocomplete="current-password">
+    <button onclick="doLogin()">×× ××¡×</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+<div id="dashboard">
+  <div class="top-bar">
+    <div>
+      <h1>××©×××¨× ×××¦××¢××</h1>
+      <div class="date">
+        <span class="updated-badge" id="updated-badge"></span>
+        <span id="last-update"></span>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">××¦×××</button>
+  </div>
+  <div class="nav-bar" id="nav-bar">
+    <button class="nav-btn active" data-section="overview">×¡×§××¨×</button>
+    <button class="nav-btn" data-section="sleep">×©×× × ×××¨××××ª</button>
+    <button class="nav-btn" data-section="training">××××× ××</button>
+    <button class="nav-btn" data-section="academic">××§××××</button>
+    <button class="nav-btn" data-section="commitments">××ª××××××××ª</button>
+    <button class="nav-btn" data-section="insights">××¡×§× ××ª</button>
+    <button class="nav-btn" data-section="viewers">×¦×¤×××ª</button>
+  </div>
+  <div class="range-bar">
+    <button class="range-btn" data-range="7" onclick="setRange(7,this)">×©×××¢</button>
+    <button class="range-btn active" data-range="30" onclick="setRange(30,this)">××××©</button>
+    <button class="range-btn" data-range="90" onclick="setRange(90,this)">3 ××××©××</button>
+    <button class="range-btn" data-range="0" onclick="setRange(0,this)">×××</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="section active" id="sec-overview">
+    <div class="kpi-row" id="kpi-row"></div>
+    <div id="recovery-alerts"></div>
+    <div class="chart-card"><h3><span>×©×× × (×©×¢××ª)</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('sleepBar')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'sleepBar','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'sleepBar','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-sleepBar"></canvas></div></div>
+    <div class="chart-card"><h3><span>HRV + ×××¤×§ ×× ×××</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('hrvOv')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'hrvOv','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'hrvOv','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-hrvOv"></canvas></div></div>
+    <div class="section-title">×××¨××¢×× ××§××××× ×§×¨××××</div>
+    <div id="ev-overview"></div>
+  </div>
+
+  <!-- SLEEP & HEALTH -->
+  <div class="section" id="sec-sleep">
+    <div class="section-title">×©×× ×</div>
+    <div class="chart-card"><h3><span>×©×¢××ª ×©×× ×</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('slpH')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'slpH','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'slpH','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-slpH"></canvas></div></div>
+    <div class="chart-card"><h3><span>×©×× × ×¢×××§× % + REM %</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('stages')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'stages','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'stages','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-stages"></canvas></div></div>
+    <div class="chart-card"><h3><span>SpOâ ××××¦×¢ + ××× ××××</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('spo2')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'spo2','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'spo2','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-spo2"></canvas></div></div>
+    <div class="section-title">××ª×××©×©××ª</div>
+    <div class="chart-card"><h3><span>HRV (ms)</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('hrv')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'hrv','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'hrv','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-hrv"></canvas></div></div>
+    <div class="chart-card"><h3><span>Body Battery â ××××× ××××</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('bb')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'bb','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'bb','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-bb"></canvas></div></div>
+    <div class="chart-card"><h3><span>××ª× + ××§××ª ××ª× ×××××</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('str')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'str','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'str','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-str"></canvas></div></div>
+    <div class="chart-card"><h3><span>×××¤×§ ×× ××× (bpm)</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('rhr')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'rhr','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'rhr','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-rhr"></canvas></div></div>
+    <div class="chart-card"><h3><span>× ×©××××ª ×××§×</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('brth')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'brth','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'brth','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-brth"></canvas></div></div>
+  </div>
+
+  <!-- TRAINING -->
+  <div class="section" id="sec-training">
+    <div class="section-title">××××× ××</div>
+    <div class="chart-card"><h3><span>×××¨××§ (×§Ð¢××)</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('dist')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'dist','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'dist','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-dist"></canvas></div></div>
+    <div class="chart-card"><h3><span>Training Effect â ×××¨××× + ×× ×××¨×××</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('te')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'te','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'te','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-te"></canvas></div></div>
+    <div class="chart-card"><h3><span>Training Load + HR</span><div class="ma-toggles"><button class="reset-zoom-btn" onclick="rzm('tl')">×××¤××¡ ×××</button><button class="ma-btn" onclick="tMA(this,'tl','sma')">SMA</button><button class="ma-btn" onclick="tMA(this,'tl','ema')">EMA</button></div></h3><div class="chart-container"><canvas id="c-tl"></canvas></div></div>
+    <div class="section-title">××××ª ××××× ××</div>
+    <div class="chart-card" style="overflow-x:auto"><table class="data-table" id="t-train"><thead><tr><th>×ª××¨××</th><th>×¡××</th><th>××©×</th><th>×××¨××§</th><th>×§×¦×</th><th>HR</th><th>TE A</th><th>TE An</th><th>Load</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <!-- ACADEMIC -->
+  <div class="section" id="sec-academic">
+    <div class="section-title">×¡×××× ××§×××</div>
+    <div class="kpi-row" id="acad-kpis"></div>
+    <div class="chart-card"><h3>×¦××× ×× ×¡××¤××× ××¤× ×§××¨×¡ (××¢×: 85)</h3><div class="chart-container" style="height:300px"><canvas id="c-grades"></canvas></div></div>
+    <div class="section-title">×¦××× ×× ××¤× ××§×¦××¢</div>
+    <div id="course-details"></div>
+    <div class="section-title">×××¨××¢×× ××§×××××</div>
+    <div id="ev-acad"></div>
+  </div>
+
+  <!-- COMMITMENTS -->
+  <div class="section" id="sec-commitments">
+    <div class="section-title">××ª××××××××ª ×¤×¢××××ª</div>
+    <div id="commitments-list"></div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="section" id="sec-insights">
+    <div class="section-title">××¡×§× ××ª ××××××ª</div>
+    <div id="daily-insights"></div>
+    <div class="section-title">××¡×§× ××ª ×©×××¢×××ª</div>
+    <div id="weekly-insights"></div>
+    <div class="sub-card">
+      <h3>××¨×©×× ××¡×××× ×××××</h3>
+      <p style="font-size:.72rem;color:var(--muted);margin-bottom:12px">×§×× ×¡×××× ×××¦××¢×× ×××¡×§× ××ª ××©××¨××ª ×××××</p>
+      <div class="sub-row">
+        <input type="email" id="sub-email" placeholder="your@email.com" dir="ltr">
+        <select id="sub-freq">
+          <option value="daily">××××</option>
+          <option value="weekly" selected>×©×××¢×</option>
+          <option value="monthly">××××©×</option>
+        </select>
+        <button onclick="doSubscribe()">××¨×©××</button>
+      </div>
+      <div class="sub-msg" id="sub-msg"></div>
+    </div>
+  </div>
+
+  <!-- VIEWERS -->
+  <div class="section" id="sec-viewers">
+    <div class="section-title">×××× ×¦×¤×××ª</div>
+    <div class="view-filter">
+      <button class="range-btn active" data-vr="7" onclick="setViewRange(7,this)">×©×××¢</button>
+      <button class="range-btn" data-vr="30" onclick="setViewRange(30,this)">××××©</button>
+      <button class="range-btn" data-vr="90" onclick="setViewRange(90,this)">3 ××××©××</button>
+      <button class="range-btn" data-vr="0" onclick="setViewRange(0,this)">×××</button>
+    </div>
+    <div class="kpi-row" id="view-kpis"></div>
+    <div id="viewers"></div>
+  </div>
+
+  <div class="refresh-note" id="refresh-note"></div>
+</div>
+<script>
+const SB_URL='https://cewwqrczhwjxwqkicxrf.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNld3dxcmN6aHdqeHdxa2ljeHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjQ5ODksImV4cCI6MjA4ODY0MDk4OX0.PJrKkpQYlyA9gaT8qOcu7aZmsn1ZQnuBtEgiFZwg6TQ';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let CH={},D={},rendered={},maS={};
+let RANGE=30, VIEW_RANGE=7, lastDataTime=null;
+
+Chart.defaults.devicePixelRatio=2;
+Chart.defaults.elements.point.radius=2;
+Chart.defaults.elements.point.hoverRadius=5;
+Chart.defaults.elements.line.borderWidth=2;
+
+// ZOOM plugin defaults
+const zoomOpts={zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x'},pan:{enabled:true,mode:'x'},limits:{x:{minRange:3}}};
+
+// NAV
+const navBtns=document.querySelectorAll('.nav-btn');
+navBtns.forEach(b=>b.addEventListener('click',()=>{
+  navBtns.forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  b.classList.add('active');
+  const sec=b.dataset.section;
+  document.getElementById('sec-'+sec).classList.add('active');
+  requestAnimationFrame(()=>renderSection(sec));
+}));
+
+// RANGE
+function setRange(r,btn){
+  RANGE=r;
+  document.querySelectorAll('.range-bar .range-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  Object.values(CH).forEach(c=>c.destroy());CH={};rendered={};
+  const active=document.querySelector('.nav-btn.active');
+  if(active){
+    renderSection(active.dataset.section);
+    if(active.dataset.section==='overview'){renderEvents('ev-overview');}
+  }
+  renderTrainTable();renderAcademic();renderEvents('ev-acad');renderInsights();
+}
+
+function setViewRange(r,btn){
+  VIEW_RANGE=r;
+  document.querySelectorAll('.view-filter .range-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderViewers();
+}
+
+// AUTH
+async function doLogin(){
+  const u=document.getElementById('username').value.trim().toLowerCase();
+  const p=document.getElementById('pin').value.trim();
+  const e=document.getElementById('login-error');
+  if(!u||!p){e.style.display='block';e.textContent='× × ×××× ××ª ×× ××©×××ª';return;}
+  const{data,error}=await sb.from('dashboard_auth').select('id').eq('username',u).eq('pin',p).maybeSingle();
+  if(error||!data){e.style.display='block';e.textContent='×©× ××©×ª××© ×× ×¡××¡×× ×©×××××';return;}
+  await sb.from('dashboard_view_logs').insert({username:u,user_agent:navigator.userAgent.substring(0,200)});
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  loadAll();
+}
+function doLogout(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+  Object.values(CH).forEach(c=>c.destroy());CH={};rendered={};
+}
+document.getElementById('pin').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('username').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pin').focus();});
+
+// SUBSCRIBE
+async function doSubscribe(){
+  const email=document.getElementById('sub-email').value.trim();
+  const freq=document.getElementById('sub-freq').value;
+  const msg=document.getElementById('sub-msg');
+  if(!email||!email.includes('@')){msg.style.color='var(--red)';msg.textContent='× × ××××× ××ª×××ª ×××× ×ª×§×× ×';return;}
+  const{error}=await sb.from('email_subscribers').upsert({email,frequency:freq,active:true},{onConflict:'email,frequency'});
+  if(error){msg.style.color='var(--red)';msg.textContent='×©××××: '+error.message;return;}
+  msg.style.color='var(--green)';msg.textContent='× ×¨×©××ª ×××¦×××! ×ª×§×× ×¡×××× '+({daily:'××××',weekly:'×©×××¢×',monthly:'××××©×'}[freq])+' ×-'+email;
+  document.getElementById('sub-email').value='';
+}
+
+// UPDATE BADGE
+function updateUpdatedBadge(){
+  const badge=document.getElementById('updated-badge');
+  if(!lastDataTime){badge.textContent='';return;}
+  const now=new Date();
+  const diffMs=now-new Date(lastDataTime);
+  const diffMin=Math.floor(diffMs/60000);
+  const diffHours=Math.floor(diffMin/60);
+  let status='',text='';
+  if(diffMin<60){status='updated-fresh';text='×¢×××× ××¨×';}
+  else if(diffHours<12){status='updated-stale';text='×¢××××: '+diffHours+'h';}
+  else{status='updated-old';text='×¢×××× ××©×';}
+  badge.className='updated-badge '+status;
+  badge.textContent=text;
+}
+
+// LOAD ALL DATA
+async function loadAll(){
+  const[dR,tR,aR,vR,cR,gR,psR,cmtR]=await Promise.all([
+    sb.from('daily_log').select('*').order('log_date',{ascending:false}).limit(365),
+    sb.from('training_log').select('*').order('training_date',{ascending:false}).limit(365),
+    sb.from('academic_events').select('*').gte('event_date',new Date().toISOString().split('T')[0]).order('event_date').limit(30),
+    sb.from('dashboard_view_logs').select('*').order('viewed_at',{ascending:false}).limit(200),
+    sb.from('courses').select('*').order('course_code'),
+    sb.from('academic_grades').select('*').order('entry_date'),
+    sb.from('v_performance_score').select('*').order('log_date',{ascending:false}).limit(1),
+    sb.from('commitments').select('*').eq('status','pending').order('due_date').limit(50)
+  ]);
+  D.dailyAll=(dR.data||[]).reverse();
+  D.trainAll=(tR.data||[]).reverse();
+  D.events=aR.data||[];
+  D.viewsAll=vR.data||[];
+  D.courses=cR.data||[];
+  D.grades=gR.data||[];
+  D.performanceScore=psR.data&&psR.data[0]||null;
+  D.commitments=cmtR.data||[];
+  const lat=D.dailyAll.length?D.dailyAll[D.dailyAll.length-1]:null;
+  if(lat){
+    lastDataTime=lat.log_date;
+    document.getElementById('last-update').textContent='×¢××××: '+fd(lat.log_date);
+    renderKPIs(lat);renderAlerts(lat);
+  }
+  updateUpdatedBadge();
+  Object.values(CH).forEach(c=>c.destroy());CH={};rendered={};
+  renderSection('overview');
+  renderEvents('ev-overview');renderEvents('ev-acad');renderCommitments();
+  renderTrainTable();renderAcademic();renderViewers();renderInsights();
+  document.getElementById('refresh-note').textContent='×¢×××× ××××××× ×× 5 ××§××ª | '+new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+}
+
+// KPI RENDERING
+function renderKPIs(lat){
+  const ps=D.performanceScore;
+  const kpis=[];
+
+  // Performance Score (first KPI)
+  if(ps&&ps.performance_score!=null){
+    const score=Math.round(pf(ps.performance_score));
+    let color='',label='';
+    if(score>=80){color='green';label='×××¦××¢ ××¢×××';}
+    else if(score>=60){color='yellow';label='×ª×¤×§×× ×¨×××';}
+    else if(score>=40){color='orange';label='××¤××ª ×¢×××¡';}
+    else{color='red';label='××ª×××©×©××ª ××××';}
+    kpis.push({color,label,value:score,klass:'kpi-'+color,subtext:'×¦××× ×××¦××¢××'});
+  }
+
+  // Sleep
+  if(lat.sleep_total_h!=null){
+    const v=pf(lat.sleep_total_h);
+    const col=v>=7.5?'green':v>=6?'yellow':'red';
+    kpis.push({color:col,label:v.toFixed(1)+'h',value:'',klass:'kpi-'+col,subtext:'×©×× ×'});
+  }
+
+  // HRV
+  if(lat.hrv_ms!=null){
+    const v=lat.hrv_ms;
+    const col=v>=80?'green':v>=60?'yellow':'red';
+    kpis.push({color:col,label:v+'ms',value:',¬klass:'kpi-'+col,subtext:'HRV'});
+  }
+
+  // Body Battery
+  if(lat.body_battery_gain!=null){
+    const v=lat.body_battery_gain;
+    const col=v>=40?'green':v>=20?'yellow':'red';
+    kpis.push({color:col,label:v,value:'',klass:'kpi-'+col,subtext:'××ª××©××'});
+  }
+
+  // Stress
+  if(lat.stress_score!=null){
+    const v=lat.stress_score;
+    const col=v<=25?'green':v<40'?'yellow':'red';
+    kpis.push({color:col,label:v,value:'',klass:'pi-'+col,sub
+ÜÝ^õçµêµåÈßJNÂBËÈÜÌY]ÜÌÛZ[O[[
+^ÂÛÛÝ\]ÜÌÛZ[NÂÛÛÝÛÛ]NMOÉÙÜY[ÎNLÉÞY[ÝÉÎÜY	ÎÂÜ\Ë\Ú
+ØÛÛÜÛÛX[ÉÉIË[YNÉËÛ\ÜÎÚÜKIÊØÛÛÝX^ÔÜÌ5çµæuè	ÉßJNÂBØÝ[Y[Ù][[Y[RY
+	ÚÜK\ÝÉÊK[\SZÜ\ËX\
+ÏO	Ï]Û\ÜÏHÜH	ÊÚËÛ\ÜÊÉÈ]Û\ÜÏH[YHÊÚË[YJÉÏÙ]]Û\ÜÏHX[ÊÚËÝX^
+ÉÏÙ]]Ý[OHÛ\Ú^NKÜ[NÙÛ]ÙZYÚÌÛX\Ú[]ÜÊÚËX[
+ÉÏÙ]Ù]Â
+KÚ[	ÉÊNÂB[Ý[Û[\[\Ê]
+^ÂÛÛÝ[\ÏV×NÂY]Û\É]Û\Ï
+
+X[\Ë\Ú
+Ý\NÝØ\Ë^Ò5è5çµåuæ
+
+\ÊH8 %5æuåuçµç5éH5çµè5åuåõå5ä5éõæ5æuäuæuêßJNÂY]ÙWØ]\WÙØZ[]ÙWØ]\WÙØZ[
+
+X[\Ë\Ú
+Ý\NÝØ\Ë^ÐÙH]\H5äµæuäõåuç5è5çµåuæ
+
+
+H8 %5å5äµåuèÈ5ç5ä5å5êµä5åuêuêH5çµèué5æuéÉßJNÂY]Ý\Ü×ÜØÛÜI]Ý\Ü×ÜØÛÜOML
+X[\Ë\Ú
+Ý\NÝØ\Ë^õçµêµåÈ5äµäuåuå
+L
+H8 %5ä5æuçµåuçÈ5éõç5äuç5äuäÈ5çµåuçµç5éIßJNÂY]ÜÌÛZ[]ÜÌÛZ[OL
+X[\Ë\Ú
+Ý\NÝØ\Ë^ÔÜÌ5çµæuè5æuçµç5æH
+L	JH8 %5êuéõåuç5äuäõæuéõê5êuæuè5å	ßJNÂÛÛÝ[YØÝ[Y[Ù][[Y[RY
+	ÜXÛÝ\KX[\ÉÊNÂ[[\SX[\ËX\
+OOÏ]Û\ÜÏH[\[\IÊØK\JÉÈÊØK^
+ÉÏÙ]ÊKÚ[	ÉÊ_	Ï]Û\ÜÏH[\[\[ÚÈ¸§!H5æõç5å5èµê5æõæuçH5êµéõæuè5æuçOÙ]ÎÂBò4T5Dôâ$TäDU$äp¦gVæ7Föâ&VæFW%6V7Föâ6V2°¢b6V3ÓÓÒv÷fW'fWrr·&VæFW$6'G2w6ÆVW&"rÂu6ÆVWrÅ²w6ÆVW÷F÷FÅöuÒÂ}zz-y]z¢r·&VæFW$6'G2v'd÷brÂt%brÅ²v'eö×2rÂw&W7Fæuö"uÒÂsVVuéµè¦÷Pçq6×§&BÐSRB\ÜX[ÙTØÛÜO\Ô]IÔ]VÌ_[ÂÛÛ[Z]Y[ÏXÛ]]_×NÂÛÛÝ]QZ[P[[ÝÑZ[P[ÑZ[P[[ÝLWN[ÂY]
+^Â\Ý]U[YO[]Ù×Ù]NÂØÝ[Y[Ù][[Y[RY
+	Û\Ý]\]IÊK^ÛÛ[IõèµäõæõåuçÎ	ÊÙ
+]Ù×Ù]JNÂ[\Ô\Ê]
+NÜ[\[\Ê]
+NÂB\]U\]YYÙJ
+NÂØXÝ[Y\ÊÒ
+KÜXXÚ
+ÏOË\ÝÞJ
+JNÐÒ^ßNÜ[\Y^ßNÂ[\ÙXÝ[Û	ÛÝ\Y]ÉÊNÂ[\][Ê	Ù][Ý\Y]ÉÊNÜ[\][Ê	Ù]XXØY	ÊNÜ[\ÛÛ[Z]Y[Ê
+NÂ[\Z[XJ
+NÜ[\XØY[ZXÊ
+NÜ[\Y]Ù\Ê
+NÜ[\[ÚYÚÊ
+NÂØÝ[Y[Ù][[Y[RY
+	ÜY\Ú[ÝIÊK^ÛÛ[IõèµäõæõåuçÈ5ä5åuæ5åuçµæ5æH5æõç
+H5äõéõåuê	ÊÛ]È]J
+KÓØØ[U[YTÝ[Ê	ÚKRS	ËÚÝ\ÌYYÚ]	ËZ[]NÌYYÚ]	ßJNÂBËÈÔHSTSÂ[Ý[Û[\Ô\Ê]
+^ÂÛÛÝÏQ\ÜX[ÙTØÛÜNÂÛÛÝÜ\ÏV×NÂËÈ\ÜX[ÙHØÛÜH
+\ÝÔJBYÉË\ÜX[ÙWÜØÛÜHO[[
+^ÂÛÛÝØÛÜOSX]Ý[
+Ë\ÜX[ÙWÜØÛÜJJNÂ]ÛÛÜIÉËX[IÉÎÂYØÛÜON
+^ØÛÛÜIÙÜY[ÎÛX[Iõäuæuéµåuè5çµèµåuç5å	ÎßB[ÙHYØÛÜOM
+^ØÛÛÜIÞY[ÝÉÎÛX[Iõêµé5éõåuäÈ5ê5äµæuç	ÎßB[ÙHYØÛÜOM
+^ØÛÛÜIÛÜ[ÙIÎÛX[Iõå5é5åõê5èµåuçµèIÎßB[Ù^ØÛÛÜIÜY	ÎÛX[Iõå5êµä5åuêuêuåuê5äuç5äuäÉÎßBÜ\Ë\Ú
+ØÛÛÜX[[YNØÛÜKÛ\ÜÎÚÜKIÊØÛÛÜÝX^õéµæuåuçÈ5äuæuéµåuèµæuçIßJNÂBËÈÛY\Y]ÛY\ÝÝ[ÚO[[
+^ÂÛÛÝ\]ÛY\ÝÝ[Ú
+NÂÛÛÝÛÛ]MËOÉÙÜY[ÎMÉÞY[ÝÉÎÜY	ÎÂÜ\Ë\Ú
+ØÛÛÜÛÛX[Ñ^Y
+JJÉÚ	Ë[YNÉËÛ\ÜÎÚÜKIÊØÛÛÝX^õêuæuè5å	ßJNÂBËÈY]Û\ÈO[[
+^ÂÛÛÝ[]Û\ÎÂÛÛÝÛÛ]NÉÙÜY[ÎMÉÞY[ÝÉÎÜY	ÎÂÜ\Ë\Ú
+ØÛÛÜÛÛX[ÉÛ\ÉË[YNÉËÛ\ÜÎÚÜKIÊØÛÛÝX^ÒßJNÂBËÈÙH]\BY]ÙWØ]\WÙØZ[O[[
+^ÂÛÛÝ[]ÙWØ]\WÙØZ[ÂÛÛÝÛÛ]MÉÙÜY[ÎLÉÞY[ÝÉÎÜY	ÎÂÜ\Ë\Ú
+ØÛÛÜÛÛX[[YNÉËÛ\ÜÎÚÜKIÊØÛÛÝX^õå5êµåõêuæuçIßJNÂBËÈÝ\ÜÂY]Ý\Ü×ÜØÛÜHO[[
+^ÂÛÛÝ[]Ý\Ü×ÜØÛÜNÂÛÛÝÛÛ]LOÉÙÜY[Î
+
+OÉÞY[ÝÉÎÜY	ÎÂÜ\Ë\Ú
+ØÛÛÜÛÛX[[YNÉËÛ\ÜÎÜKIÊØÛÛÝXw7FWC¢}yíz­yr7Ò°¢Ð ¢òò7Page_Down
